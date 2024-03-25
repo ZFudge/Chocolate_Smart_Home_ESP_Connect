@@ -28,12 +28,12 @@ void setup_wifi() {
   Serial.println(WiFi.localIP());
 }
 
-void connect_mqtt_broker(int mqttPort, String mqttServer) {
+void connect_mqtt_broker() {
   while (!mqtt_client.connected()) {
-    Serial.print("Attempting MQTT connection on host ");
-    Serial.print(mqttServer);
+    Serial.print("Attempting MQTT connection to ");
+    Serial.print(mqtt_client.domain);
     Serial.print(" on port ");
-    Serial.print(mqttPort);
+    Serial.print(mqtt_client.port);
     Serial.println("...");
     digitalWrite(LED_BUILTIN, LOW);
     if (mqtt_client.connect(controller.name.c_str())) {
