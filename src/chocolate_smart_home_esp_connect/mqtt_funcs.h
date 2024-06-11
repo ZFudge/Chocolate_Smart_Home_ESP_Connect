@@ -9,18 +9,21 @@
 
 
 WiFiClient espClient;
-PubSubClient mqtt_client_CSM(espClient);
+
+namespace CsmEspConn {
+
+PubSubClient mqtt_client(espClient);
 
 
-void publishState() {
-    const String message = controller_CSM.getConfigAndState();
+void publishConfigAndState() {
+    const String message = CsmEspConn::controller.getConfigAndState();
 
     Serial.print("Publishing: ");
     Serial.println(message);
     Serial.print("To topic: ");
     Serial.println(SEND_THIS_CONTROLLERS_DATA_TOPIC);
     Serial.println(
-        mqtt_client_CSM.publish(
+        mqtt_client.publish(
             SEND_THIS_CONTROLLERS_DATA_TOPIC,
             String(message).c_str()
         )
@@ -34,9 +37,9 @@ void msgReceivedCallback(String topic, byte* message, unsigned int length) {
     Serial.print("Message arrived on topic: ");
     Serial.println(topic);
 
-    if (topic == controller_CSM.stateRequestedTopic ||
+    if (topic == CsmEspConn::controller.stateRequestedTopic ||
         topic == ALL_CONTROLLERS_STATES_REQUESTED_TOPIC)
-        return publishState();
+        return publishConfigAndState();
 
     String messageTemp;
     Serial.print("Message: ");
@@ -47,22 +50,24 @@ void msgReceivedCallback(String topic, byte* message, unsigned int length) {
     Serial.println();
     Serial.println(messageTemp);
 
-    controller_CSM.processMsgForController(messageTemp);
+    CsmEspConn::controller.processMsgReceived(messageTemp);
 
-    publishState();
+    publishConfigAndState();
 }
 
-void set_mqtt_server_host_and_port_CSM(const char* mqttServerHostname, int mqttPort ) {
-    mqtt_client_CSM.setServer(mqttServerHostname, mqttPort);
-    // PubSubClient.setCallback() throws "mqtt_client_CSM does not name a type" error if
+
+void set_mqtt_server_host_and_port(const char* mqttServerHostname, int mqttPort) {
+    mqtt_client.setServer(mqttServerHostname, mqttPort);
+    // PubSubClient.setCallback() throws "mqtt_client does not name a type" error if
     // .setCallback(), or the outermost function whose scope contains a call to it, does
     // not originate from within the setup() sketch function. Putting here now.
-    mqtt_client_CSM.setCallback(msgReceivedCallback);
+    mqtt_client.setCallback(msgReceivedCallback);
 }
 
-void set_mqtt_server_host_with_default_port_CSM(const char* mqttServer) {
-    set_mqtt_server_host_and_port_CSM(mqttServer, DEFAULT_MQTT_PORT);
+void set_mqtt_server_host_with_default_port(const char* mqttServer) {
+    set_mqtt_server_host_and_port(mqttServer, DEFAULT_MQTT_PORT);
 }
 
+}
 
 #endif

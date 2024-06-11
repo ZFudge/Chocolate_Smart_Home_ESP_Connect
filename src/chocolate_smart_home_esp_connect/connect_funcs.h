@@ -10,7 +10,9 @@
 #include "wifi_configuration.h"
 
 
-void connect_WIFI_CSM() {
+namespace CsmEspConn {
+
+void connect_WIFI() {
     delay(10);
     Serial.print("Connecting to ");
     Serial.print(SSID);
@@ -33,24 +35,28 @@ void connect_WIFI_CSM() {
 }
 
 
-void connect_MQTT_CSM() {
-    while (!mqtt_client_CSM.connected()) {
+void connect_MQTT() {
+    while (!mqtt_client.connected()) {
         Serial.print("Attempting MQTT connection to ");
-        Serial.print(mqtt_client_CSM.domain);
+        Serial.print(mqtt_client.domain);
         Serial.print(" on port ");
-        Serial.print(mqtt_client_CSM.port);
+        Serial.print(mqtt_client.port);
         Serial.println("...");
 
         digitalWrite(LED_BUILTIN, LOW);
 
-        if (!mqtt_client_CSM.connect(controller_CSM.name.c_str())) {
+        if (!mqtt_client.connect(CsmEspConn::controller.name.c_str())) {
             // Print failure and wait 5 seconds before trying connection again.
             Serial.print("failed, rc=");
-            Serial.print(mqtt_client_CSM.state());
-            Serial.println(" trying again in a few seconds...");
+            Serial.print(mqtt_client.state());
+            Serial.print(" trying again in a few seconds");
             flash();
             digitalWrite(LED_BUILTIN, HIGH);
-            delay(5000);
+            for (byte i = 0; i < 5; i++) {
+                Serial.print(".");
+                delay(1000);
+            }
+            Serial.println();
             continue;
         }
 
@@ -61,17 +67,19 @@ void connect_MQTT_CSM() {
         }
 
         Serial.print("Subscribing to ");
-        Serial.print(controller_CSM.newDataReceivedTopic + ", ");
-        Serial.print(controller_CSM.stateRequestedTopic + ", and ");
+        Serial.print(CsmEspConn::controller.newDataReceivedTopic + ", ");
+        Serial.print(CsmEspConn::controller.stateRequestedTopic + ", and ");
         Serial.println(ALL_CONTROLLERS_STATES_REQUESTED_TOPIC);
-        mqtt_client_CSM.subscribe(ALL_CONTROLLERS_STATES_REQUESTED_TOPIC);
-        mqtt_client_CSM.subscribe(controller_CSM.stateRequestedTopic.c_str());
-        mqtt_client_CSM.subscribe(controller_CSM.newDataReceivedTopic.c_str());
+        mqtt_client.subscribe(ALL_CONTROLLERS_STATES_REQUESTED_TOPIC);
+        mqtt_client.subscribe(CsmEspConn::controller.stateRequestedTopic.c_str());
+        mqtt_client.subscribe(CsmEspConn::controller.newDataReceivedTopic.c_str());
         Serial.println("Subscribed!");
 
         Serial.println("Attempting initial publish...");
-        publishState();
+        publishConfigAndState();
     }
+}
+
 }
 
 #endif
