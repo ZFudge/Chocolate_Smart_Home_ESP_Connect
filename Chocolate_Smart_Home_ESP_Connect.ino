@@ -1,7 +1,5 @@
-#include "Chocolate_Smart_Home_ESP_Connect.h"
+#include <Chocolate_Smart_Home_ESP_Connect.h>
 
-void setup() {
-    Serial.begin(115200);
-}
+void setup() {}
 
 void loop() {}

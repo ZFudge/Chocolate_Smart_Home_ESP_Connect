@@ -1,6 +1,8 @@
 #ifndef CONTROLLER_H_
 #define CONTROLLER_H_
 
+namespace CsmEspConn {
+
 struct Controller {
     uint8_t mqttId;
     String controllerType;
@@ -10,30 +12,30 @@ struct Controller {
     String stateRequestedTopic;
 
     /* Implemented and set at the CSM controller level. */
-    void (*processMsgForController)(String message);
-    void setProcessMsgForController(
-        void (*processMsgForController)(String message)
+    void (*processMsgReceived)(String message);
+    void setProcessMsgReceived(
+        void (*processMsgReceived)(String message)
     ) {
-        this->processMsgForController = processMsgForController;
+        this->processMsgReceived = processMsgReceived;
     }
     /* Implemented and set at the CSM controller level. */
-    String (*getControllerState)();
-    void setGetControllerState(
-        String (*getControllerState)()
+    String (*getState)();
+    void setGetState(
+        String (*getState)()
     ) {
-        this->getControllerState = getControllerState;
+        this->getState = getState;
     }
 
-    String getControllerConfig() {
+    String getConfig() {
         return String(mqttId) + ',' + String(controllerType) + ',' + String(name);
     };
 
     String getConfigAndState() {
-        return getControllerConfig() + ',' + this->getControllerState();
+        return getConfig() + ',' + this->getState();
     };
 
     void setMQTTId(uint8_t mqttId) {this->mqttId = mqttId;}
-    void setControllerType(const char* controllerType) {this->controllerType = controllerType;}
+    void setType(const char* controllerType) {this->controllerType = controllerType;}
 
     void init(String name) {
         // ESP boot time varies enough for seeding RNG.
@@ -46,6 +48,8 @@ struct Controller {
     }
 };
 
-Controller controller_CSM;
+Controller controller;
+
+}
 
 #endif
