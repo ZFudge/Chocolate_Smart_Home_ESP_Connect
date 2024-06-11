@@ -5,74 +5,64 @@
 #include <PubSubClient.h>
 
 #include "constants.h"
-#include "controller_data.h"
+#include "controller.h"
+
 
 WiFiClient espClient;
-PubSubClient mqtt_client(espClient);
-
-ControllerData controller;
+PubSubClient mqtt_client_CSM(espClient);
 
 
-void publishEspState() {
-  const String message = controller.getStateMessage();
+void publishState() {
+    const String message = controller_CSM.getConfigAndState();
 
-  Serial.print("Publishing: ");
-  Serial.println(message);
-  Serial.print("To topic: ");
-  Serial.println(SEND_THIS_CONTROLLERS_DATA_TOPIC);
-  Serial.println(
-    mqtt_client.publish(
-      SEND_THIS_CONTROLLERS_DATA_TOPIC,
-      String(message).c_str()
-    )
-    ? "Success!" : "FAILED!"
+    Serial.print("Publishing: ");
+    Serial.println(message);
+    Serial.print("To topic: ");
+    Serial.println(SEND_THIS_CONTROLLERS_DATA_TOPIC);
+    Serial.println(
+        mqtt_client_CSM.publish(
+            SEND_THIS_CONTROLLERS_DATA_TOPIC,
+            String(message).c_str()
+        )
+        ? "Success!" : "FAILED!"
   );
 }
 
-void handleMqttMsgReceived(
-  String topic,
-  byte* message,
-  unsigned int length,
-  void (*processData)(String message)
-) {
-  /* This is called whenever a message is published to
-   * a topic that the ESP8266 is subscribed to. */
-  Serial.print("Message arrived on topic: ");
-  Serial.println(topic);
+void msgReceivedCallback(String topic, byte* message, unsigned int length) {
+    /* This is called whenever a message is published to
+    * a topic that the ESP8266 is subscribed to. */
+    Serial.print("Message arrived on topic: ");
+    Serial.println(topic);
 
-  if (topic == controller.stateRequestedTopic ||
-      topic == ALL_CONTROLLERS_STATES_REQUESTED_TOPIC)
-    return publishEspState();
+    if (topic == controller_CSM.stateRequestedTopic ||
+        topic == ALL_CONTROLLERS_STATES_REQUESTED_TOPIC)
+        return publishState();
 
-  String messageTemp;
-  Serial.print("Message: ");
-  for (int i = 0; i < length; i++) {
-    messageTemp += (char)message[i];
-    Serial.print((char)message[i]);
-  }
-  Serial.println();
-  Serial.println(messageTemp);
+    String messageTemp;
+    Serial.print("Message: ");
+    for (int i = 0; i < length; i++) {
+        messageTemp += (char)message[i];
+        Serial.print((char)message[i]);
+    }
+    Serial.println();
+    Serial.println(messageTemp);
 
-  processData(messageTemp);
+    controller_CSM.processMsgForController(messageTemp);
 
-  publishEspState();
+    publishState();
 }
 
-void init_mqtt_broker(
-  void (*handleMqttMsgReceivedImplemented)(String topic, byte* message, unsigned int length),
-  const char* mqttServer,
-  int mqttPort
-) {
-  mqtt_client.setServer(mqttServer, mqttPort);
-  mqtt_client.setCallback(handleMqttMsgReceivedImplemented);
+void set_mqtt_server_host_and_port_CSM(const char* mqttServerHostname, int mqttPort ) {
+    mqtt_client_CSM.setServer(mqttServerHostname, mqttPort);
+    // PubSubClient.setCallback() throws "mqtt_client_CSM does not name a type" error if
+    // .setCallback(), or the outermost function whose scope contains a call to it, does
+    // not originate from within the setup() sketch function. Putting here now.
+    mqtt_client_CSM.setCallback(msgReceivedCallback);
 }
 
-void init_mqtt_broker(
-  void (*handleMqttMsgReceivedImplemented)(String topic, byte* message, unsigned int length),
-  const char* mqttServer
-) {
-  mqtt_client.setServer(mqttServer, DEFAULT_MQTT_PORT);
-  mqtt_client.setCallback(handleMqttMsgReceivedImplemented);
+void set_mqtt_server_host_with_default_port_CSM(const char* mqttServer) {
+    set_mqtt_server_host_and_port_CSM(mqttServer, DEFAULT_MQTT_PORT);
 }
+
 
 #endif
