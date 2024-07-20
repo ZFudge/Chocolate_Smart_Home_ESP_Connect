@@ -71,8 +71,8 @@ void connect_MQTT() {
         }
 
         Serial.print("Subscribing to ");
-        Serial.print(CsmEspConn::controller.newDataReceivedTopic + ", ");
-        Serial.print(CsmEspConn::controller.stateRequestedTopic + ", and ");
+        Serial.print(String(CsmEspConn::controller.newDataReceivedTopic) + ", ");
+        Serial.print(String(CsmEspConn::controller.stateRequestedTopic) + ", and ");
         Serial.println(ALL_CONTROLLERS_STATES_REQUESTED_TOPIC);
         mqtt_client.subscribe(ALL_CONTROLLERS_STATES_REQUESTED_TOPIC);
         mqtt_client.subscribe(CsmEspConn::controller.stateRequestedTopic.c_str());
