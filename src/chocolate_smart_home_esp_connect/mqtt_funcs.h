@@ -1,7 +1,11 @@
 #ifndef MQTT_FUNCS_H_
 #define MQTT_FUNCS_H_
 
+#if defined(ESP8266)
 #include <ESP8266WiFi.h>
+#else
+#include <WiFi.h>
+#endif
 #include <PubSubClient.h>
 
 #include "constants.h"
