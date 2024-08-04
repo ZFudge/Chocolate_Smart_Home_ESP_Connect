@@ -9,79 +9,90 @@
 #include <PubSubClient.h>
 
 #include "constants.h"
-#include "misc_funcs.h"
 #include "mqtt_funcs.h"
 #include "wifi_configuration.h"
 
 
 namespace CsmEspConn {
 
-void connect_WIFI() {
-    delay(10);
+// Wait 5 seconds before trying MQTT connection again.
+const int WIFI_CONNECT_RETRY_TIME = 5000;
+long lastWifiConnectionAttempt;
+bool initialConnection = true;
+bool wifiIsConnected() {
+    return WiFi.status() == WL_CONNECTED;
+}
+void connect_WIFI(const byte LED_WIFI) {
+    // Defer Wifi connection attempt until 5 seconds have lapsed since last
+    // connection attempt.
+    if (!initialConnection && millis() - lastWifiConnectionAttempt < WIFI_CONNECT_RETRY_TIME)
+        return;
+
+    initialConnection = false;
     Serial.print("Connecting to ");
-    Serial.print(SSID);
+    Serial.println(SSID);
     WiFi.begin(SSID, PASSWORD);
 
-    while (WiFi.status() != WL_CONNECTED) {
-        flash();
-        delay(1500);
-        Serial.print(".");
-    }
-    Serial.println();
+    digitalWrite(LED_WIFI, HIGH);
+    delay(10);
+    digitalWrite(LED_WIFI, LOW);
+    delay(10);
+    digitalWrite(LED_WIFI, HIGH);
 
-    for (byte i = 0; i < 2; i++) {
-        flash();
-        delay(500);
+    if (!wifiIsConnected()) {
+        Serial.print("Failed: ");
+        Serial.println(WiFi.status());
+        lastWifiConnectionAttempt = millis();
+        digitalWrite(LED_WIFI, LOW);
+        return;
     }
-
-    Serial.print("Connected to WiFi! Address: ");
+ 
+    digitalWrite(LED_WIFI, LOW);
+    Serial.print("Connected to WiFi: ");
     Serial.println(WiFi.localIP());
 }
 
+// Wait 5 seconds before trying MQTT connection again.
+const int MQTT_CONNECT_RETRY_TIME = 5000;
+long lastMqttConnectionAttempt;
 
-void connect_MQTT() {
-    while (!mqtt_client.connected()) {
-        Serial.print("Attempting MQTT connection to ");
-        Serial.print(mqtt_client.domain);
-        Serial.print(" on port ");
-        Serial.print(mqtt_client.port);
-        Serial.println("...");
+void connect_MQTT(const byte LED_MQTT) {
+    // Defer MQTT connection attempt until 5 seconds have lapsed since last
+    // connection attempt.
+    if (millis() - lastMqttConnectionAttempt < MQTT_CONNECT_RETRY_TIME)
+        return;
 
-        digitalWrite(LED_BUILTIN, LOW);
+    Serial.print("Attempting MQTT connection to ");
+    Serial.print(mqtt_client.domain);
+    Serial.print(" on port ");
+    Serial.print(mqtt_client.port);
+    Serial.println("...");
+    digitalWrite(LED_MQTT, HIGH);
 
-        if (!mqtt_client.connect(CsmEspConn::controller.name.c_str())) {
-            // Print failure and wait 5 seconds before trying connection again.
-            Serial.print("failed, rc=");
-            Serial.print(mqtt_client.state());
-            Serial.print(" trying again in a few seconds");
-            flash();
-            digitalWrite(LED_BUILTIN, HIGH);
-            for (byte i = 0; i < 5; i++) {
-                Serial.print(".");
-                delay(1000);
-            }
-            Serial.println();
-            continue;
-        }
-
-        Serial.println("Connected!");
-        for (byte i = 0; i < 5; i++) {
-            flash();
-            delay(i * 100);
-        }
-
-        Serial.print("Subscribing to ");
-        Serial.print(String(CsmEspConn::controller.newDataReceivedTopic) + ", ");
-        Serial.print(String(CsmEspConn::controller.stateRequestedTopic) + ", and ");
-        Serial.println(ALL_CONTROLLERS_STATES_REQUESTED_TOPIC);
-        mqtt_client.subscribe(ALL_CONTROLLERS_STATES_REQUESTED_TOPIC);
-        mqtt_client.subscribe(CsmEspConn::controller.stateRequestedTopic.c_str());
-        mqtt_client.subscribe(CsmEspConn::controller.newDataReceivedTopic.c_str());
-        Serial.println("Subscribed!");
-
-        Serial.println("Attempting initial publish...");
-        publishConfigAndState();
+    if (!mqtt_client.connect(CsmEspConn::controller.name.c_str())) {
+        // Print failure and initiate 5 seconds wait before attempting
+        // connection again.
+        Serial.print("failed, rc=");
+        Serial.print(mqtt_client.state());
+        Serial.println(" trying again in 5 seconds");
+        lastMqttConnectionAttempt = millis();
+        return;
     }
+
+    Serial.println("Connected to MQTT!");
+
+    Serial.print("Subscribing to ");
+    Serial.print(String(CsmEspConn::controller.newDataReceivedTopic) + ", ");
+    Serial.print(String(CsmEspConn::controller.stateRequestedTopic) + ", and ");
+    Serial.println(BROADCAST_TOPIC_ALL_CONTROLLER_STATES_REQUESTED);
+    mqtt_client.subscribe(BROADCAST_TOPIC_ALL_CONTROLLER_STATES_REQUESTED);
+    mqtt_client.subscribe(CsmEspConn::controller.stateRequestedTopic.c_str());
+    mqtt_client.subscribe(CsmEspConn::controller.newDataReceivedTopic.c_str());
+    Serial.println("Subscribed!");
+
+    Serial.println("Attempting initial publish...");
+    publishConfigAndState();
+    digitalWrite(LED_MQTT, LOW);
 }
 
 }
