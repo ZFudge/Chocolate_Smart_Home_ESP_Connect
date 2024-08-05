@@ -42,7 +42,7 @@ void msgReceivedCallback(String topic, byte* message, unsigned int length) {
     Serial.println(topic);
 
     if (topic == CsmEspConn::controller.stateRequestedTopic ||
-        topic == ALL_CONTROLLERS_STATES_REQUESTED_TOPIC)
+        topic == BROADCAST_TOPIC_ALL_CONTROLLER_STATES_REQUESTED)
         return publishConfigAndState();
 
     String messageTemp;
