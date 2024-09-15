@@ -11,6 +11,8 @@ struct Controller {
     String newDataReceivedTopic;
     String stateRequestedTopic;
 
+    byte ledWifi, ledMqtt;
+
     /* Implemented and set at the CSM controller level. */
     void (*processMsgReceived)(String message);
     void setProcessMsgReceived(
@@ -34,10 +36,17 @@ struct Controller {
         return getConfig() + ',' + this->getState();
     };
 
-    void setMQTTId(uint8_t mqttId) {this->mqttId = mqttId;}
-    void setType(const char* controllerType) {this->controllerType = controllerType;}
+    void setMQTTId(uint8_t mqttId) { this->mqttId = mqttId; }
+    void setType(const char* controllerType) { this->controllerType = controllerType; }
+
+    void setWIFILed(const byte ledWifi) { this->ledWifi = ledWifi; };
+    void setMQTTLed(const byte ledMqtt) { this->ledMqtt = ledMqtt; };
 
     void init(String name) {
+        pinMode(ledWifi, OUTPUT);
+        pinMode(ledMqtt, OUTPUT);
+        digitalWrite(ledWifi, LOW);
+        digitalWrite(ledMqtt, LOW);
         // ESP boot time varies enough for seeding RNG.
         randomSeed(ESP.getCycleCount());
         // Append nonce to controller name to help the server identify when reboots have occurred.
